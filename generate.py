@@ -122,6 +122,11 @@ def _parse_args():
         default=1,
         help="The size of the ring attention parallelism in DiT.")
     parser.add_argument(
+        "--sage_attn",
+        action="store_true",
+        default=False,
+        help="Whether to use Sage Attention.")
+    parser.add_argument(
         "--t5_fsdp",
         action="store_true",
         default=False,
@@ -253,6 +258,7 @@ def generate(args):
         ), f"context parallel are not supported in non-distributed environments."
 
     if args.ulysses_size > 1 or args.ring_size > 1:
+        assert args.sage_attn is not True
         assert args.ulysses_size * args.ring_size == world_size, f"The number of ulysses_size and ring_size should be equal to the world size."
         from xfuser.core.distributed import (initialize_model_parallel,
                                              init_distributed_environment)
@@ -325,6 +331,7 @@ def generate(args):
             t5_fsdp=args.t5_fsdp,
             dit_fsdp=args.dit_fsdp,
             use_usp=(args.ulysses_size > 1 or args.ring_size > 1),
+            sage_attn=args.sage_attn,
             t5_cpu=args.t5_cpu,
         )
 

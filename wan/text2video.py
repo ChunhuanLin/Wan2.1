@@ -34,6 +34,7 @@ class WanT2V:
         t5_fsdp=False,
         dit_fsdp=False,
         use_usp=False,
+        sage_attn=False,
         t5_cpu=False,
     ):
         r"""
@@ -85,6 +86,7 @@ class WanT2V:
         self.model.eval().requires_grad_(False)
 
         if use_usp:
+            assert sage_attn is False
             from xfuser.core.distributed import \
                 get_sequence_parallel_world_size
 
@@ -95,6 +97,10 @@ class WanT2V:
                     usp_attn_forward, block.self_attn)
             self.model.forward = types.MethodType(usp_dit_forward, self.model)
             self.sp_size = get_sequence_parallel_world_size()
+        elif sage_attn:
+            for block in self.model.blocks:
+                block.self_attn.sage_attn = True
+                
         else:
             self.sp_size = 1
 

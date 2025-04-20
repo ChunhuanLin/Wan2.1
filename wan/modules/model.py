@@ -118,6 +118,7 @@ class WanSelfAttention(nn.Module):
         self.window_size = window_size
         self.qk_norm = qk_norm
         self.eps = eps
+        self.sage_attn = False
 
         # layers
         self.q = nn.Linear(dim, dim)
@@ -145,13 +146,28 @@ class WanSelfAttention(nn.Module):
             return q, k, v
 
         q, k, v = qkv_fn(x)
+        q = rope_apply(q, grid_sizes, freqs)
+        k = rope_apply(k, grid_sizes, freqs)
 
-        x = flash_attention(
-            q=rope_apply(q, grid_sizes, freqs),
-            k=rope_apply(k, grid_sizes, freqs),
-            v=v,
-            k_lens=seq_lens,
-            window_size=self.window_size)
+        if self.sage_attn:
+            from sageattention import sageattn, sageattn_qk_int8_pv_fp8_cuda_sm90
+            print('---0')
+            print(q.shape, k.shape, v.shape)
+            print(seq_lens)
+            print('---1')
+            x = sageattn(
+                q=q,
+                k=k,
+                v=v,
+                tensor_layout="NHD",
+            )
+        else:
+            x = flash_attention(
+                q=q,
+                k=k,
+                v=v,
+                k_lens=seq_lens,
+                window_size=self.window_size)
 
         # output
         x = x.flatten(2)
