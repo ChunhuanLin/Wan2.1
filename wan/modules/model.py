@@ -151,16 +151,16 @@ class WanSelfAttention(nn.Module):
 
         if self.sage_attn:
             from sageattention import sageattn, sageattn_qk_int8_pv_fp8_cuda_sm90
-            print('---0')
-            print(q.shape, k.shape, v.shape)
-            print(seq_lens)
-            print('---1')
+            ori_dtype = q.dtype
+            dtype=torch.bfloat16
+            q, k, v = q.to(dtype), k.to(dtype), v.to(dtype)
             x = sageattn(
                 q=q,
                 k=k,
                 v=v,
                 tensor_layout="NHD",
             )
+            x = x.to(ori_dtype)
         else:
             x = flash_attention(
                 q=q,

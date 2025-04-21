@@ -97,12 +97,13 @@ class WanT2V:
                     usp_attn_forward, block.self_attn)
             self.model.forward = types.MethodType(usp_dit_forward, self.model)
             self.sp_size = get_sequence_parallel_world_size()
-        elif sage_attn:
+        else:
+            self.sp_size = 1
+
+        if sage_attn:
             for block in self.model.blocks:
                 block.self_attn.sage_attn = True
                 
-        else:
-            self.sp_size = 1
 
         if dist.is_initialized():
             dist.barrier()
